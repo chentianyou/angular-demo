@@ -1,0 +1,91 @@
+<svg class="draggable-container" xmlns="http://www.w3.org/2000/svg" (mousedown)="controller.mouseDown($event)"
+  (mousemove)="controller.mouseMove($event)" #svg_ele>
+  <defs>
+    <linearGradient spreadMethod="pad" y2="0" x2="0" y1="1" x1="0" id="nodeBackgroundGradient">
+      <stop offset="0" stop-opacity="0.99609" stop-color="#56aaff" />
+      <stop offset="0.63934" stop-opacity="0.99219" stop-color="#d0d0e5" />
+    </linearGradient>
+  </defs>
+
+  <!-- node -->
+  <g *ngFor="let node of nodes;let node_idx=index" (mousedown)="controller.nodeMouseDown($event, node)">
+    <rect
+      [ngClass]="{'selected-node-rect': node.selected(), 'mouseover-node-rect': node.id == controller.mouseOverNode}"
+      class="node-rect'" ry="10" rx="10" [attr.x]="node.x" [attr.y]="node.y" [attr.width]="node.width"
+      [attr.height]="node.height" fill="url(#nodeBackgroundGradient)" [attr.data-index]="node.id">
+    </rect>
+
+    <text [attr.x]="node.x + node.width/2" [attr.y]="node.y+25" text-anchor="middle" alignment-baseline="middle">
+      {{node.name()}}
+    </text>
+
+    <g *ngFor="let connector of node.inputConnectors;let input_idx=index" class="connector input-connector"
+      (mousedown)="controller.connectorMouseDown($event, node, connector, input_idx, false)">
+      <text [attr.x]="node.x + connector.x + 20" [attr.y]="node.y + connector.y" text-anchor="left"
+        alignment-baseline="middle">
+        {{connector.name()}}
+      </text>
+      <circle [ngClass]="{'mouseover-connector-circle': connector.id == controller.mouseOverConnector}"
+        class="connector-circle" [attr.r]="setting.connectorSize" [attr.cx]="node.x + connector.x"
+        [attr.cy]="node.y + connector.y" [attr.data-index]="connector.id" />
+    </g>
+    <g *ngFor="let connector of node.outputConnectors;let output_idx=index" class="connector output-connector"
+      (mousedown)="controller.connectorMouseDown($event, node, connector, output_idx, false)">
+      <text [attr.x]="node.x + connector.x - 20" [attr.y]="node.y + connector.y" text-anchor="end"
+        alignment-baseline="middle">
+        {{connector.name()}}
+      </text>
+
+      <circle [ngClass]="{'mouseover-connector-circle': connector.id == controller.mouseOverConnector }"
+        class="connector-circle" [attr.r]="setting.connectorSize" [attr.cx]="node.x + connector.x"
+        [attr.cy]="node.y + connector.y" [attr.data-index]="connector.id" />
+    </g>
+  </g>
+
+  <!--egdes-->
+  <g>
+    <g *ngFor="let connection of connections;" class="connection"
+      (mousedown)="controller.connectionMouseDown($event, connection)">
+      <path
+        [ngClass]="{'selected-connection-line': connection.selected(), 'mouseover-connection-line': connection.id == controller.mouseOverConnection}"
+        class="connection-line" [attr.d]="connection.path" [attr.data-index]="connection.id">
+      </path>
+
+      <text
+        [ngClass]="{ 'selected-connection-name': connection.selected(), 'mouseover-connection-name': connection.id == controller.mouseOverConnection}"
+        class="connection-name" [attr.x]="connection.middleX()" [attr.y]="connection.middleY()" text-anchor="middle"
+        alignment-baseline="middle" [attr.data-index]="connection.id">{{connection.name()}}</text>
+      <circle
+        [ngClass]="{'selected-connection-endpoint': connection.selected(), 'mouseover-connection-endpoint': connection.id == controller.mouseOverConnection}"
+        class="connection-endpoint" r="5" [attr.cx]="connection.sourceCoordX()" [attr.cy]="connection.sourceCoordY()"
+        [attr.data-index]="connection.id">
+      </circle>
+
+      <circle
+        [ngClass]="{'selected-connection-endpoint': connection.selected(), 'mouseover-connection-endpoint': connection.id == controller.mouseOverConnection}"
+        class="connection-endpoint" r="5" [attr.cx]="connection.destCoordX()" [attr.cy]="connection.destCoordY()"
+        [attr.data-index]="connection.id">
+      </circle>
+
+    </g>
+  </g>
+
+  <!--dragging connection-->
+  <g *ngIf="controller.draggingConnection">
+    <path class="dragging-connection dragging-connection-line" [attr.d]="controller.draggingPath">
+    </path>
+
+    <circle class="dragging-connection dragging-connection-endpoint" r="4" [attr.cx]="controller.dragPoint1.x"
+      [attr.cy]="controller.dragPoint1.y">
+    </circle>
+
+    <circle class="dragging-connection dragging-connection-endpoint" r="4" [attr.cx]="controller.dragPoint2.x"
+      [attr.cy]="controller.dragPoint2.y">
+    </circle>
+  </g>
+
+  <rect *ngIf="controller?.dragSelecting" class="drag-selection-rect" [attr.x]="controller.dragSelectionRect?.x"
+    [attr.y]="controller.dragSelectionRect?.y" [attr.width]="controller.dragSelectionRect?.width"
+    [attr.height]="controller.dragSelectionRect?.height">
+  </rect>
+</svg>
