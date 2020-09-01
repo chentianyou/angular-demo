@@ -1,3 +1,11 @@
-<div>
-  <app-flowchart [data]="graph"></app-flowchart>
+<div style="display: flex;">
+  <div style="width: 25%;height: 800px; padding: 5px;">
+    <!-- <div *ngFor="let node of nodes" style="width: 100%; height: 50px; background-color: #777; margin-bottom: 5px;" (dragstart)="startDrag($event, node)"
+      draggable="true">{{node.name}}</div> -->
+    <div *ngFor="let node of nodes" style="width: 100%; height: 50px; background-color: #777; margin-bottom: 5px;"
+      pNodeitem [data]="node">{{node.name}}</div>
+  </div>
+  <div style="width: 74%;">
+    <app-flowchart [data]="graph"></app-flowchart>
+  </div>
 </div>

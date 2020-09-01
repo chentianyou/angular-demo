@@ -48,4 +48,13 @@ export class Toolkit {
 			y: this.computeConnectionDestTangentY(pt1, pt2),
 		};
 	};
+
+	public static translateCoordinates(element, x, y, evt) {
+        var svg_elem = element.get(0);
+        var matrix = svg_elem.getScreenCTM();
+        var point = svg_elem.createSVGPoint();
+        point.x = x - evt.view.pageXOffset;
+        point.y = y - evt.view.pageYOffset;
+        return point.matrixTransform(matrix.inverse());
+    };
 }

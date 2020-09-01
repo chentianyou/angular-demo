@@ -115,15 +115,6 @@ export class FlowchartController {
         return $(element);
     }
 
-    translateCoordinates(x, y, evt) {
-        var svg_elem = this.element.get(0);
-        var matrix = svg_elem.getScreenCTM();
-        var point = svg_elem.createSVGPoint();
-        point.x = x - evt.view.pageXOffset;
-        point.y = y - evt.view.pageYOffset;
-        return point.matrixTransform(matrix.inverse());
-    };
-
     mouseDown(evt) {
 
         this.model.deselectAll();
@@ -134,7 +125,7 @@ export class FlowchartController {
             //
             dragStarted: (x, y) => {
                 this.dragSelecting = true;
-                let startPoint = this.translateCoordinates(x, y, evt);
+                let startPoint = Toolkit.translateCoordinates(this.element, x, y, evt);
                 this.dragSelectionStartPoint = startPoint;
                 this.dragSelectionRect = {
                     x: startPoint.x,
@@ -149,7 +140,7 @@ export class FlowchartController {
             //
             dragging: (x, y) => {
                 let startPoint = this.dragSelectionStartPoint;
-                let curPoint = this.translateCoordinates(x, y, evt);
+                let curPoint = Toolkit.translateCoordinates(this.element, x, y, evt);
 
                 this.dragSelectionRect = {
                     x: curPoint.x > startPoint.x ? startPoint.x : curPoint.x,
@@ -219,7 +210,7 @@ export class FlowchartController {
             // Node dragging has commenced.
             //
             dragStarted: (x, y) => {
-                lastMouseCoords = this.translateCoordinates(x, y, evt);
+                lastMouseCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
 
                 //
                 // If nothing is selected when dragging starts, 
@@ -235,7 +226,7 @@ export class FlowchartController {
             // Dragging selected nodes... update their x,y coordinates.
             //
             dragging: (x, y) => {
-                var curCoords = this.translateCoordinates(x, y, evt);
+                var curCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
                 var deltaX = curCoords.x - lastMouseCoords.x;
                 var deltaY = curCoords.y - lastMouseCoords.y;
 
@@ -266,7 +257,7 @@ export class FlowchartController {
             // and dragging has commenced.
             //
             dragStarted: (x, y) => {
-                var curCoords = this.translateCoordinates(x, y, evt);
+                var curCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
                 this.dragPoint1 = {
                     x: node.x + connector.x,
                     y: node.y + connector.y
@@ -284,7 +275,7 @@ export class FlowchartController {
             // Called on mousemove while dragging out a connection.
             //
             dragging: (x, y, evt) => {
-                var startCoords = this.translateCoordinates(x, y, evt);
+                var startCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
                 this.dragPoint2 = {
                     x: startCoords.x,
                     y: startCoords.y
@@ -307,7 +298,6 @@ export class FlowchartController {
                     // Create a new connection.
                     //
                     let endConnector = this.service.getObject(this.mouseOverConnector);
-                    console.log(endConnector);
 
                     this.model.createNewConnection(connector, endConnector);
                 }
@@ -323,7 +313,7 @@ export class FlowchartController {
     }
 
     connectionMouseDown(evt, connection) {
-        
+
         this.model.handleConnectionMouseDown(connection, evt.ctrlKey);
 
         // Don't let the chart handle the mouse down.

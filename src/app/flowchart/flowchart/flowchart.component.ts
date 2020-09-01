@@ -1,7 +1,9 @@
-import { Component, OnInit, Input, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
+import { Component, OnInit, Input, ElementRef, AfterViewInit, ViewChild, Output, EventEmitter } from '@angular/core';
 import { FlowchartController } from "./flowchart.controller";
 import { Toolkit } from "../Toolkit";
 import { FlowchartService } from '../flowchart.service';
+import { env } from 'process';
+declare var $: any;
 
 export interface FlowchartSetting {
   defaultNodeWidth?: number;
@@ -12,6 +14,29 @@ export interface FlowchartSetting {
 
 interface FCService {
   service: FlowchartService
+}
+
+export interface FlowchartNode {
+  name: string,
+  id: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  inputConnectors: FlowchartConnector[],
+  outputConnectors: FlowchartConnector[],
+  data: any,
+}
+
+export interface FlowchartConnector {
+  name: string,
+  type: string,
+}
+
+export interface FlowChartConnection {
+  name: string,
+  source: { nodeId: number, connectorIndex: number },
+  dest: { nodeId: number, connectorIndex: number },
 }
 
 @Component({
@@ -34,9 +59,16 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   };
 
   @Input()
-  data: { nodes: any[], connections: any[] };
+  data: { nodes: FlowchartNode[], connections: any[] };
+
+  @Output()
+  onDragOver: EventEmitter<any> = new EventEmitter();
+
+  @Output()
+  onDrageEnd: EventEmitter<any> = new EventEmitter();
 
   @ViewChild('svg_ele') svg;
+  element = null;
 
   constructor(
     ele: ElementRef,
@@ -54,8 +86,31 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   }
 
   ngAfterViewInit() {
-    this.controller.registerElement(this.svg.nativeElement);
+    this.element = $(this.svg.nativeElement)
+    this.controller.registerElement(this.element);
   }
+
+  // event functions
+  dragOver(evt: DragEvent) {
+    evt.preventDefault();
+  }
+
+  drop(evt: DragEvent) {
+    evt.preventDefault();
+    let dataStr = evt.dataTransfer.getData("node");
+    let offset = JSON.parse(evt.dataTransfer.getData("offset"));
+    if (dataStr) {
+      let data = JSON.parse(dataStr);
+
+      data.id = this.data.nodes.length;
+      let point = Toolkit.translateCoordinates(this.element, evt.pageX - offset.x, evt.pageY - offset.y, evt)
+      data.x = point.x;
+      data.y = point.y;
+      console.log("drop ", data);
+      this.addNode(data);
+    }
+  }
+  // end event functions
 
   createNodesViewModel(nodesDataModel) {
     let nodesViewModel = [];
@@ -352,19 +407,23 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   };
 
   //
-  // Select nodes and connections that fall within the selection rect.
+  // Select nodes and connections that intersect the selection rect.
   //
   applySelectionRect(selectionRect) {
-
     this.deselectAll();
+    let s_left = selectionRect.x,
+      s_right = selectionRect.x + selectionRect.width,
+      s_top = selectionRect.y,
+      s_bottom = selectionRect.y + selectionRect.height;
 
     if (this.nodes) {
       for (let i = 0; i < this.nodes.length; ++i) {
         let node = this.nodes[i];
-        if (node.x >= selectionRect.x &&
-          node.y >= selectionRect.y &&
-          node.x + node.width <= selectionRect.x + selectionRect.width &&
-          node.y + node.height <= selectionRect.y + selectionRect.height) {
+        let n_left = node.x,
+          n_right = node.x + node.width,
+          n_top = node.y,
+          n_bottom = node.y + node.height;
+        if (s_left < n_right && n_left < s_right && s_top < n_bottom && n_top < s_bottom) {
           // Select nodes that are within the selection rect.
           node.select();
         }
