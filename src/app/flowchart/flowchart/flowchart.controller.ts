@@ -1,8 +1,12 @@
 import { MouseCapture } from "./mouse.capture";
 import { Dragging } from "./dragging";
-import { FlowchartComponent, FlowchartSetting, NodeViewModel, ConnectorViewModel } from "./flowchart.component";
+import { FlowchartComponent } from "./flowchart.component";
 import { Toolkit } from "../Toolkit";
 import { FlowchartService } from "../flowchart.service";
+import { ConnectorViewModel } from "./entitis/connector";
+import { NodeViewModel } from "./entitis/node";
+import { FlowchartSetting } from "./entitis/graph";
+import { sp } from "@angular/core/src/render3";
 declare var $: any;
 
 export class FlowchartController {
@@ -30,6 +34,7 @@ export class FlowchartController {
     dragPoint2 = null;
     dragTangent1 = null;
     dragTangent2 = null;
+    timeStamp = 0;
 
     constructor(model: FlowchartComponent, element, service, setting) {
         this.mouseCapture = new MouseCapture();
@@ -202,8 +207,7 @@ export class FlowchartController {
     }
 
     nodeMouseDown(evt, node) {
-        var lastMouseCoords;
-
+        let lastMouseCoords;
         this.dragging.startDrag(evt, {
 
             //
@@ -239,7 +243,15 @@ export class FlowchartController {
             // The node wasn't dragged... it was clicked.
             //
             clicked: () => {
-                this.model.handleNodeClicked(node, evt.ctrlKey);
+                if (this.timeStamp > 0) {
+                    let span = evt.timeStamp - this.timeStamp;
+                    if (span > 100 && span < 500) {
+                        this.model.onNodeDoubleClick.emit({ data: node.data, originEvent: evt });
+                        return;
+                    }
+                }
+                this.timeStamp = evt.timeStamp;
+                this.model.handleNodeClicked(node, evt);
             },
 
         });

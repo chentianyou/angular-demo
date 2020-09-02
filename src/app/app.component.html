@@ -6,6 +6,8 @@
       pNodeitem [data]="node">{{node.name}}</div>
   </div>
   <div style="width: 74%;">
-    <app-flowchart [data]="graph"></app-flowchart>
+    <app-flowchart [data]="graph" (onNodeDoubleClick)="nodeDbClick($event)" (onNodeSelected)="nodeSelected($event)"
+      (onDeleted)="nodeDeleted($event)" (onNodeClicked)="nodeClick($event)" (onAddNode)="addNode($event)"
+      (onAddConnection)="addConnection($event)" (onConnectionSelected)="connectionSelected($event)"></app-flowchart>
   </div>
 </div>

@@ -118,7 +118,6 @@ The element (in this case the SVG element) that contains the draggable elements.
 
 .draggable-container {
     border: solid 1px blue;
-    background-color: aquamarine;
     width: 100%;
     height: 800px;
 }

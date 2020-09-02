@@ -21,3 +21,8 @@ export class FlowchartService {
     return this.objectMap.delete(id);
   }
 }
+
+
+export interface FCService {
+  service: FlowchartService
+}

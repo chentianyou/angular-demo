@@ -84,8 +84,34 @@ export class AppComponent implements OnInit {
 
   }
 
-  startDrag(evt) {
-    console.log(evt);
+  nodeDbClick(event) {
+    console.log(`node ${event.data.id} double click`);
   }
 
+  nodeClick(event) {
+    console.log(`node ${event.data.id} click`);
+    
+  }
+
+  nodeSelected(event) {
+    console.log(`node ${event.id} selected`);
+  }
+
+  nodeDeleted(event) {
+    console.log(`node ${event.nodes} , connetions ${event.connections} will be delected`);
+    // event.checked = false;
+  }
+
+  addNode(data) {
+    console.log(data)
+  }
+
+  addConnection(data) {
+    console.log(data)
+
+  }
+
+  connectionSelected(data) {
+    console.log(data);
+  }
 }

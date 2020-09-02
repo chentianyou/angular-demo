@@ -17,7 +17,7 @@ export class Dragging {
         //
         // Handler for mousemove events while the mouse is 'captured'.
         //
-        let mouseMove = function (evt) {
+        let mouseMove = (evt) => {
 
             if (!dragging) {
                 if (Math.abs(evt.pageX - x) > this.threshold ||
@@ -47,7 +47,7 @@ export class Dragging {
         //
         // Handler for when mouse capture is released.
         //
-        let released = function () {
+        let released = (evt) => {
 
             if (dragging) {
                 if (config.dragEnded) {
@@ -65,9 +65,9 @@ export class Dragging {
         // Handler for mouseup event while the mouse is 'captured'.
         // Mouseup releases the mouse capture.
         //
-        let mouseUp = function (evt) {
+        let mouseUp = (evt) => {
 
-            this.mouseCapture.release();
+            this.mouseCapture.release(evt);
 
             evt.stopPropagation();
             evt.preventDefault();
@@ -77,9 +77,9 @@ export class Dragging {
         // Acquire the mouse capture and start handling mouse events.
         //
         this.mouseCapture.acquire(evt, {
-            mouseMove: mouseMove.bind(this),
-            mouseUp: mouseUp.bind(this),
-            released: released.bind(this),
+            mouseMove: mouseMove,
+            mouseUp: mouseUp,
+            released: released,
         });
 
         evt.stopPropagation();

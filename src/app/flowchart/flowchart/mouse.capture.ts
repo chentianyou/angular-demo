@@ -31,7 +31,7 @@ export class MouseCapture {
         //
         // Release any prior mouse capture.
         //
-        this.release();
+        this.release(evt);
 
         this.mouseCaptureConfig = config;
 
@@ -47,7 +47,7 @@ export class MouseCapture {
     //
     // Release the 'mouse capture'.
     //
-    release() {
+    release(evt) {
 
         if (this.mouseCaptureConfig) {
 
@@ -55,7 +55,7 @@ export class MouseCapture {
                 //
                 // Let the client know that their 'mouse capture' has been released.
                 //
-                this.mouseCaptureConfig.released();
+                this.mouseCaptureConfig.released(evt);
             }
 
             this.mouseCaptureConfig = null;

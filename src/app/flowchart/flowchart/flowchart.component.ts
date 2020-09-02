@@ -1,43 +1,11 @@
-import { Component, OnInit, Input, ElementRef, AfterViewInit, ViewChild, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, ElementRef, AfterViewInit, ViewChild, Output, EventEmitter, HostListener } from '@angular/core';
 import { FlowchartController } from "./flowchart.controller";
 import { Toolkit } from "../Toolkit";
-import { FlowchartService } from '../flowchart.service';
-import { env } from 'process';
+import { FlowchartService, FCService } from '../flowchart.service';
+import { NodeViewModel } from './entitis/node';
+import { ConnectionViewModel } from './entitis/connection';
+import { FlowchartNode, FlowchartSetting } from './entitis/graph';
 declare var $: any;
-
-export interface FlowchartSetting {
-  defaultNodeWidth?: number;
-  nodeNameHeight?: number;
-  connectorHeight?: number;
-  connectorSize?: number;
-}
-
-interface FCService {
-  service: FlowchartService
-}
-
-export interface FlowchartNode {
-  name: string,
-  id: string,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  inputConnectors: FlowchartConnector[],
-  outputConnectors: FlowchartConnector[],
-  data: any,
-}
-
-export interface FlowchartConnector {
-  name: string,
-  type: string,
-}
-
-export interface FlowChartConnection {
-  name: string,
-  source: { nodeId: number, connectorIndex: number },
-  dest: { nodeId: number, connectorIndex: number },
-}
 
 @Component({
   selector: 'app-flowchart',
@@ -55,19 +23,36 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     defaultNodeWidth: 250,
     nodeNameHeight: 40,
     connectorHeight: 35,
-    connectorSize: 10,
+    connectorSize: 5,
   };
 
   @Input()
   data: { nodes: FlowchartNode[], connections: any[] };
 
   @Output()
-  onDragOver: EventEmitter<any> = new EventEmitter();
+  onDrop: EventEmitter<any> = new EventEmitter();
 
+  // node event
   @Output()
-  onDrageEnd: EventEmitter<any> = new EventEmitter();
+  onNodeDoubleClick: EventEmitter<any> = new EventEmitter(); //
+  @Output()
+  onNodeSelected: EventEmitter<any> = new EventEmitter(); //
+  @Output()
+  onDeleted: EventEmitter<any> = new EventEmitter(); //
+  @Output()
+  onNodeClicked: EventEmitter<any> = new EventEmitter(); //
+  @Output()
+  onAddNode: EventEmitter<any> = new EventEmitter(); //
+
+  // connnection event
+  @Output()
+  onAddConnection: EventEmitter<any> = new EventEmitter();
+  @Output()
+  onConnectionSelected: EventEmitter<any> = new EventEmitter();
+
 
   @ViewChild('svg_ele') svg;
+
   element = null;
 
   constructor(
@@ -101,13 +86,27 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     let offset = JSON.parse(evt.dataTransfer.getData("offset"));
     if (dataStr) {
       let data = JSON.parse(dataStr);
-
-      data.id = this.data.nodes.length;
+      data.id = Toolkit.UID();
       let point = Toolkit.translateCoordinates(this.element, evt.pageX - offset.x, evt.pageY - offset.y, evt)
       data.x = point.x;
       data.y = point.y;
-      console.log("drop ", data);
       this.addNode(data);
+      this.onDrop.emit({ data: data, originEvent: evt });
+    }
+  }
+
+  // Disable contexmenu
+  contextmenu(evt) {
+    return false;
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  keyDown(evt: KeyboardEvent) {
+    switch (evt.keyCode) {
+      case 8: //backspace
+      case 46: //delete
+        this.deleteSelected();
+        break;
     }
   }
   // end event functions
@@ -117,6 +116,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     if (nodesDataModel) {
       for (let i = 0; i < nodesDataModel.length; ++i) {
         let node = new NodeViewModel(nodesDataModel[i], this.setting, this.service);
+        node.selectedHandler = (data) => { this.onNodeSelected.emit(data) };
         this.service.addObject(node.id, node);
         nodesViewModel.push(node);
       }
@@ -157,6 +157,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     let sourceConnector = this.findOutputConnector(connectionDataModel.source.nodeID, connectionDataModel.source.connectorIndex);
     let destConnector = this.findInputConnector(connectionDataModel.dest.nodeID, connectionDataModel.dest.connectorIndex);
     let connection = new ConnectionViewModel(connectionDataModel, sourceConnector, destConnector, this.service);
+    connection.selectedHandler = (data) => { this.onConnectionSelected.emit(data); };
     this.service.addObject(connection.id, connection);
     return connection;
   }
@@ -236,8 +237,10 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     let inputConnector = startConnectorType == 'output' ? endConnector : startConnector;
 
     let connectionViewModel = new ConnectionViewModel(connectionDataModel, outputConnector, inputConnector, this.service);
+    connectionViewModel.selectedHandler = (data) => { this.onConnectionSelected.emit(data); };
     this.service.addObject(connectionViewModel.id, connectionViewModel);
     connectionsViewModel.push(connectionViewModel);
+    this.onAddConnection.emit(connectionViewModel.data);
   };
 
   addNode(nodeDataModel) {
@@ -253,9 +256,11 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     // 
     // Update the view model.
     //
-    let node = new NodeViewModel(nodeDataModel, this.setting, this.service)
+    let node = new NodeViewModel(nodeDataModel, this.setting, this.service);
+    node.selectedHandler = (data) => { this.onNodeSelected.emit(data) };
     this.service.addObject(node.id, node);
     this.nodes.push(node);
+    this.onAddNode.emit(node.data);
   }
 
   //
@@ -309,12 +314,11 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   //
   // Handle mouse click on a particular node.
   //
-  handleNodeClicked(node, ctrlKey) {
-
-    if (ctrlKey) {
+  handleNodeClicked(node: NodeViewModel, evt) {
+    if (evt.ctrlKey) {
       node.toggleSelected();
     }
-    else {
+    else if (!node.selected()) {
       this.deselectAll();
       node.select();
     }
@@ -328,6 +332,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     }
     this.nodes.splice(nodeIndex, 1);
     this.nodes.push(node);
+    this.onNodeClicked.emit({ data: node.data, originEvent: evt });
   };
 
   //
@@ -354,6 +359,11 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
 
     let deletedNodeIds = [];
 
+    let deletedNodeUIds = [];
+    let deleteConnectionUIds = [];
+
+    let deletedNodes = [];
+    let deletedConnections = [];
     //
     // Sort nodes into:
     //		nodes to keep and 
@@ -372,6 +382,8 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
         // Keep track of nodes that were deleted, so their connections can also
         // be deleted.
         deletedNodeIds.push(node.data.id);
+        deletedNodeUIds.push(node.id);
+        deletedNodes.push(node);
       }
     }
 
@@ -394,7 +406,29 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
         //
         newConnectionViewModels.push(connection);
         newConnectionDataModels.push(connection.data);
+      } else {
+        deleteConnectionUIds.push(connection.id);
+        deletedConnections.push(connection);
       }
+    }
+
+    let event = {
+      checked: true,
+      nodes: deletedNodes,
+      connections: deletedConnections
+    }
+    this.onDeleted.emit(event);
+    if (!event.checked) {
+      return
+    }
+
+
+    // Delete node and connections in flowchart service
+    for (let id in deletedNodeUIds) {
+      this.service.delObject(id);
+    }
+    for (let id in deleteConnectionUIds) {
+      this.service.delObject(id);
     }
 
     //
@@ -474,323 +508,5 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     return selectedConnections;
   };
 
-}
-
-export class ConnectorViewModel implements FCService {
-  id: string;
-  data: any;
-  _parentNode: any;
-  _x: any;
-  _y: any;
-  service: FlowchartService;
-
-  constructor(connectorDataModel, x, y, parentNode, service) {
-    this.data = connectorDataModel;
-    this._parentNode = parentNode;
-    this._x = x;
-    this._y = y;
-    this.id = Toolkit.UID();
-    this.service = service;
-  }
-
-  //
-  // The name of the connector.
-  //
-  name() {
-    return this.data.name;
-  }
-
-  //
-  // X coordinate of the connector.
-  //
-  get x() {
-    return this._x;
-  };
-
-  //
-  // Y coordinate of the connector.
-  //
-  get y() {
-    return this._y;
-  };
-
-  //
-  // The parent node that the connector is attached to.
-  //
-  parentNode() {
-    return this._parentNode;
-  };
-}
-
-export class NodeViewModel implements FCService {
-  id: string;
-  setting: FlowchartSetting;
-  data: any;
-  inputConnectors: ConnectorViewModel[];
-  outputConnectors: ConnectorViewModel[];
-  _selected = false;
-  service: FlowchartService;
-
-  constructor(nodeDataModel, setting: FlowchartSetting, service: FlowchartService) {
-    this.setting = setting;
-    this.data = nodeDataModel;
-    this.service = service;
-
-    // set the default width value of the node
-    if (!this.data.width || this.data.width < 0) {
-      this.data.width = setting.defaultNodeWidth;
-    }
-    this.inputConnectors = this.createConnectorsViewModel(this.data.inputConnectors, 0, this);
-    this.outputConnectors = this.createConnectorsViewModel(this.data.outputConnectors, this.data.height, this);
-
-    this.relayoutConnector(this.inputConnectors);
-    this.relayoutConnector(this.outputConnectors);
-    // Set to true when the node is selected.
-    this._selected = false;
-    this.id = Toolkit.UID();
-  }
-
-  relayoutConnector(connectors: ConnectorViewModel[]) {
-    let len = connectors.length;
-    let m = (len - 1) / 2;
-    for (let i = 0; i < len; i++) {
-      let connector = connectors[i];
-      connector._x = this.width / 2 + (i - m) * this.setting.connectorHeight;
-    }
-  }
-  computeConnectorX(connectorIndex: number): number {
-    return (connectorIndex * this.setting.connectorHeight);
-  }
-
-  createConnectorsViewModel(connectorDataModels, y, parentNode) {
-    let viewModels = [];
-    if (connectorDataModels) {
-      for (let i = 0; i < connectorDataModels.length; ++i) {
-        let connectorViewModel = new ConnectorViewModel(connectorDataModels[i], this.computeConnectorX(i), y, parentNode, this.service);
-        this.service.addObject(connectorViewModel.id, connectorViewModel);
-        viewModels.push(connectorViewModel);
-      }
-    }
-    return viewModels;
-  }
-
-  //
-  // Name of the node.
-  //
-  name() {
-    return this.data.name || "";
-  };
-
-  //
-  // X coordinate of the node.
-  //
-  get x() {
-    return this.data.x;
-  };
-
-  //
-  // Y coordinate of the node.
-  //
-  get y() {
-    return this.data.y;
-  };
-
-  //
-  // Width of the node.
-  //
-  get width() {
-    return this.data.width;
-  }
-
-  //
-  // Height of the node.
-  //
-  get height() {
-    return this.data.height;
-  }
-
-  //
-  // Select the node.
-  //
-  select() {
-    this._selected = true;
-  };
-
-  //
-  // Deselect the node.
-  //
-  deselect() {
-    this._selected = false;
-  };
-
-  //
-  // Toggle the selection state of the node.
-  //
-  toggleSelected() {
-    this._selected = !this._selected;
-  };
-
-  //
-  // Returns true if the node is selected.
-  //
-  selected() {
-    return this._selected;
-  };
-
-  //
-  // Internal function to add a connector.
-  _addConnector(connectorDataModel, y, connectorsDataModel, connectorsViewModel) {
-    let connectorViewModel =
-      new ConnectorViewModel(connectorDataModel, 0,
-        y, this, this.service);
-
-    this.service.addObject(connectorViewModel.id, connectorViewModel)
-    connectorsDataModel.push(connectorDataModel);
-
-    // Add to node's view model.
-    connectorsViewModel.push(connectorViewModel);
-  }
-
-  //
-  // Add an input connector to the node.
-  //
-  addInputConnector(connectorDataModel) {
-
-    if (!this.data.inputConnectors) {
-      this.data.inputConnectors = [];
-    }
-    this._addConnector(connectorDataModel, 0, this.data.inputConnectors, this.inputConnectors);
-  };
-
-  //
-  // Add an ouput connector to the node.
-  //
-  addOutputConnector(connectorDataModel) {
-
-    if (!this.data.outputConnectors) {
-      this.data.outputConnectors = [];
-    }
-    this._addConnector(connectorDataModel, this.data.height, this.data.outputConnectors, this.outputConnectors);
-  };
-}
-
-export class ConnectionViewModel implements FCService {
-  id: string;
-  data: any;
-  source: any;
-  dest: any;
-  _selected = false;
-  service: FlowchartService;
-
-  constructor(connectionDataModel, sourceConnector, destConnector, service: FlowchartService) {
-    this.data = connectionDataModel;
-    this.source = sourceConnector;
-    this.dest = destConnector;
-    // Set to true when the connection is selected.
-    this._selected = false;
-    this.id = Toolkit.UID();
-    this.service = service;
-  }
-
-  name() {
-    return this.data.name || "";
-  }
-
-  get path() {
-    return `M ${this.sourceCoordX()},${this.sourceCoordY()}
-      C ${this.sourceTangentX()}, ${this.sourceTangentY()}
-      ${this.destTangentX()}, ${this.destTangentY()}
-      ${this.destCoordX()}, ${this.destCoordY()}`
-  }
-
-  sourceCoordX() {
-    return this.source.parentNode().x + this.source.x;
-  };
-
-  sourceCoordY() {
-    return this.source.parentNode().y + this.source.y;
-  };
-
-  sourceCoord() {
-    return {
-      x: this.sourceCoordX(),
-      y: this.sourceCoordY()
-    };
-  }
-
-  sourceTangentX() {
-    return Toolkit.computeConnectionSourceTangentX(this.sourceCoord(), this.destCoord());
-  };
-
-  sourceTangentY() {
-    return Toolkit.computeConnectionSourceTangentY(this.sourceCoord(), this.destCoord());
-  };
-
-
-
-
-  destCoordX() {
-    return this.dest.parentNode().x + this.dest.x;
-  };
-
-  destCoordY() {
-    return this.dest.parentNode().y + this.dest.y;
-  };
-
-  destCoord() {
-    return {
-      x: this.destCoordX(),
-      y: this.destCoordY()
-    };
-  }
-
-  destTangentX() {
-    return Toolkit.computeConnectionDestTangentX(this.sourceCoord(), this.destCoord());
-  };
-
-  destTangentY() {
-    return Toolkit.computeConnectionDestTangentY(this.sourceCoord(), this.destCoord());
-  };
-
-  middleX(scale) {
-    if (typeof (scale) == "undefined")
-      scale = 0.5;
-    return this.sourceCoordX() * (1 - scale) + this.destCoordX() * scale;
-  };
-
-  middleY(scale) {
-    if (typeof (scale) == "undefined")
-      scale = 0.5;
-    return this.sourceCoordY() * (1 - scale) + this.destCoordY() * scale;
-  };
-
-
-  //
-  // Select the connection.
-  //
-  select() {
-    this._selected = true;
-  };
-
-  //
-  // Deselect the connection.
-  //
-  deselect() {
-    this._selected = false;
-  };
-
-  //
-  // Toggle the selection state of the connection.
-  //
-  toggleSelected() {
-    this._selected = !this._selected;
-  };
-
-  //
-  // Returns true if the connection is selected.
-  //
-  selected() {
-    return this._selected;
-  };
 }
 

@@ -1,5 +1,5 @@
 <svg class="draggable-container" xmlns="http://www.w3.org/2000/svg" (mousedown)="controller.mouseDown($event)"
-  (mousemove)="controller.mouseMove($event)" (dragover)="dragOver($event)" (drop)="drop($event)" #svg_ele>
+  (mousemove)="controller.mouseMove($event)" (dragover)="dragOver($event)" (drop)="drop($event)" (contextmenu)="contextmenu($event)" #svg_ele>
   <defs>
     <linearGradient spreadMethod="pad" y2="0" x2="0" y1="1" x1="0" id="nodeBackgroundGradient">
       <stop offset="0" stop-opacity="0.99609" stop-color="#56aaff" />
