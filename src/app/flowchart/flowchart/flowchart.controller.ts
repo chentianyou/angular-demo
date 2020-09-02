@@ -6,8 +6,8 @@ import { FlowchartService } from "../flowchart.service";
 import { ConnectorViewModel } from "./entitis/connector";
 import { NodeViewModel } from "./entitis/node";
 import { FlowchartSetting } from "./entitis/graph";
-import { sp } from "@angular/core/src/render3";
-declare var $: any;
+import { sp, e } from "@angular/core/src/render3";
+declare let $: any;
 
 export class FlowchartController {
     mouseCapture: MouseCapture;
@@ -28,13 +28,19 @@ export class FlowchartController {
 
     draggingConnection = false;
     dragSelecting = false;
+    Panning = false;
     document;
 
     dragPoint1 = null;
     dragPoint2 = null;
     dragTangent1 = null;
     dragTangent2 = null;
+
     timeStamp = 0;
+    viewBox = { x: 0, y: 0, w: 100, h: 100 };
+    size = { w: 100, h: 100 };
+    isPanning = false;
+    scale = 1;
 
     constructor(model: FlowchartComponent, element, service, setting) {
         this.mouseCapture = new MouseCapture();
@@ -49,6 +55,9 @@ export class FlowchartController {
 
     registerElement(element) {
         this.element = $(element);
+        this.viewBox.w = this.element.width();
+        this.viewBox.h = this.element.height();
+        this.size = { w: this.element.width(), h: this.element.height() };
         this.mouseCapture.registerElement(element);
     }
 
@@ -61,12 +70,12 @@ export class FlowchartController {
     };
 
     hasClassSVG(obj, has) {
-        var classes = obj.attr('class');
+        let classes = obj.attr('class');
         if (!classes) {
             return false;
         }
 
-        var index = classes.search(has);
+        let index = classes.search(has);
 
         if (index == -1) {
             return false;
@@ -121,17 +130,19 @@ export class FlowchartController {
     }
 
     mouseDown(evt) {
-
+        let startMouseCoords;
         this.model.deselectAll();
         this.dragging.startDrag(evt, {
 
             //
             // Commence dragging... setup variables to display the drag selection rect.
             //
-            dragStarted: (x, y) => {
-                this.dragSelecting = true;
+            dragStarted: (x, y, e) => {
+                this.dragSelecting = evt.ctrlKey;
+                this.Panning = !evt.ctrlKey;
                 let startPoint = Toolkit.translateCoordinates(this.element, x, y, evt);
                 this.dragSelectionStartPoint = startPoint;
+                startMouseCoords = { x: x, y: y };
                 this.dragSelectionRect = {
                     x: startPoint.x,
                     y: startPoint.y,
@@ -143,16 +154,27 @@ export class FlowchartController {
             //
             // Update the drag selection rect while dragging continues.
             //
-            dragging: (x, y) => {
-                let startPoint = this.dragSelectionStartPoint;
+            dragging: (x, y, e) => {
                 let curPoint = Toolkit.translateCoordinates(this.element, x, y, evt);
 
-                this.dragSelectionRect = {
-                    x: curPoint.x > startPoint.x ? startPoint.x : curPoint.x,
-                    y: curPoint.y > startPoint.y ? startPoint.y : curPoint.y,
-                    width: curPoint.x > startPoint.x ? curPoint.x - startPoint.x : startPoint.x - curPoint.x,
-                    height: curPoint.y > startPoint.y ? curPoint.y - startPoint.y : startPoint.y - curPoint.y,
-                };
+                if (this.dragSelecting) {
+                    let startPoint = this.dragSelectionStartPoint;
+                    this.dragSelectionRect = {
+                        x: curPoint.x > startPoint.x ? startPoint.x : curPoint.x,
+                        y: curPoint.y > startPoint.y ? startPoint.y : curPoint.y,
+                        width: curPoint.x > startPoint.x ? curPoint.x - startPoint.x : startPoint.x - curPoint.x,
+                        height: curPoint.y > startPoint.y ? curPoint.y - startPoint.y : startPoint.y - curPoint.y,
+                    };
+                }
+
+                if (this.Panning) {
+                    let dx = (startMouseCoords.x - x) / this.scale;
+                    let dy = (startMouseCoords.y - y) / this.scale;
+                    this.viewBox = { x: this.viewBox.x + dx, y: this.viewBox.y + dy, w: this.viewBox.w, h: this.viewBox.h };
+                    let vb = `${this.viewBox.x} ${this.viewBox.y} ${this.viewBox.w} ${this.viewBox.h}`;
+                    this.element.attr('viewBox', vb);
+                    startMouseCoords = { x: x, y: y };
+                }
             },
 
             //
@@ -160,10 +182,12 @@ export class FlowchartController {
             //
             dragEnded: () => {
                 this.dragSelecting = false;
+                this.Panning = false;
                 this.model.applySelectionRect(this.dragSelectionRect);
                 delete this.dragSelectionStartPoint;
                 delete this.dragSelectionRect;
             },
+            name: "mouseDown",
         });
 
     }
@@ -206,6 +230,32 @@ export class FlowchartController {
         this.mouseOverNode = index;
     }
 
+    mouseWheel(evt: WheelEvent) {
+        evt.preventDefault();
+        let w = this.viewBox.w;
+        let h = this.viewBox.h;
+        let mx = evt.offsetX;//mouse x  
+        let my = evt.offsetY;
+        let dw = w * Math.sign(evt.deltaY) * 0.05;
+        let dh = h * Math.sign(evt.deltaY) * 0.05;
+        let dx = dw * mx / this.size.w;
+        let dy = dh * my / this.size.h;
+        let nx = this.viewBox.x + dx,
+            ny = this.viewBox.y + dy,
+            nw = this.viewBox.w - dw,
+            nh = this.viewBox.h - dh;
+        this.scale = this.size.w / nw;
+        if (this.scale >= 0.5 && this.scale <= 2) {
+            this.viewBox = { x: nx, y: ny, w: nw, h: nh };
+            let vb = `${this.viewBox.x} ${this.viewBox.y} ${this.viewBox.w} ${this.viewBox.h}`;
+            this.element.attr('viewBox', vb);
+        } else if (this.scale > 2) {
+            this.scale = 2;
+        } else if (this.scale < 0.5) {
+            this.scale = 0.5;
+        }
+    }
+
     nodeMouseDown(evt, node) {
         let lastMouseCoords;
         this.dragging.startDrag(evt, {
@@ -230,9 +280,9 @@ export class FlowchartController {
             // Dragging selected nodes... update their x,y coordinates.
             //
             dragging: (x, y) => {
-                var curCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
-                var deltaX = curCoords.x - lastMouseCoords.x;
-                var deltaY = curCoords.y - lastMouseCoords.y;
+                let curCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
+                let deltaX = curCoords.x - lastMouseCoords.x;
+                let deltaY = curCoords.y - lastMouseCoords.y;
 
                 this.model.updateSelectedNodesLocation(deltaX, deltaY);
 
@@ -254,6 +304,7 @@ export class FlowchartController {
                 this.model.handleNodeClicked(node, evt);
             },
 
+            name: "nodeMouseDown",
         });
     }
 
@@ -269,7 +320,7 @@ export class FlowchartController {
             // and dragging has commenced.
             //
             dragStarted: (x, y) => {
-                var curCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
+                let curCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
                 this.dragPoint1 = {
                     x: node.x + connector.x,
                     y: node.y + connector.y
@@ -287,7 +338,7 @@ export class FlowchartController {
             // Called on mousemove while dragging out a connection.
             //
             dragging: (x, y, evt) => {
-                var startCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
+                let startCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
                 this.dragPoint2 = {
                     x: startCoords.x,
                     y: startCoords.y
@@ -320,6 +371,7 @@ export class FlowchartController {
                 delete this.dragPoint2;
                 delete this.dragTangent2;
             },
+            name: "connectorMouseDown",
 
         });
     }

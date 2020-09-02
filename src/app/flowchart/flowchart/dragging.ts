@@ -9,7 +9,8 @@ export class Dragging {
     }
 
     startDrag(evt, config) {
-
+        console.log(config);
+        
         let dragging = false;
         let x = evt.pageX;
         let y = evt.pageY;
