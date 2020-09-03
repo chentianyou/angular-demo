@@ -75,7 +75,7 @@ Style for connections.
 }
 
 .selected-connection-endpoint {
-    fill: red;
+    fill: red !important;
 }
 
 .mouseover-connection-endpoint {

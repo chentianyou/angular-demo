@@ -13,15 +13,18 @@ export class Toolkit {
 	}
 
 	public static computeConnectionSourceTangentX(pt1, pt2) {
-		return pt1.x + this.computeConnectionTangentOffset(pt1, pt2);
+		// return pt1.x + this.computeConnectionTangentOffset(pt1, pt2);
+		return pt1.x;
 	};
 
 	public static computeConnectionTangentOffset(pt1, pt2) {
-		return (pt2.x - pt1.x) / 2;
+		// return (pt2.x - pt1.x) / 2;
+		return (pt2.y - pt1.y) / 2
 	}
 
 	public static computeConnectionSourceTangentY(pt1, pt2) {
-		return pt1.y;
+		// return pt1.y;
+		return pt1.y + this.computeConnectionTangentOffset(pt1, pt2);
 	};
 
 	public static computeConnectionSourceTangent(pt1, pt2) {
@@ -32,14 +35,16 @@ export class Toolkit {
 	};
 
 	public static computeConnectionDestTangentX(pt1, pt2) {
-		return pt2.x - this.computeConnectionTangentOffset(pt1, pt2);
+		// return pt2.x - this.computeConnectionTangentOffset(pt1, pt2);
+		return pt2.x;
 	};
 
 	//
 	// Compute the tangent for the bezier curve.
 	//
 	public static computeConnectionDestTangentY(pt1, pt2) {
-		return pt2.y;
+		// return pt2.y;
+		return pt2.y - this.computeConnectionTangentOffset(pt1, pt2);
 	};
 
 	public static computeConnectionDestTangent(pt1, pt2) {

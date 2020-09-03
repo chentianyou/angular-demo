@@ -96,7 +96,7 @@ export class NodeitemDirective implements AfterViewInit, OnDestroy {
   }
 
   @HostListener('dragstart', ['$event'])
-  dragStart(event) {
+  dragStart(event: DragEvent) {
     if (this.dragEffect) {
       event.dataTransfer.effectAllowed = this.dragEffect;
     }

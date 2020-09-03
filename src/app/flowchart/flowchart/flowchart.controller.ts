@@ -391,4 +391,12 @@ export class FlowchartController {
          ${this.dragTangent2.x}, ${this.dragTangent2.y}
          ${this.dragPoint2.x}, ${this.dragPoint2.y}`
     }
+
+    get dragginArrowPath() {
+        return `M ${this.dragPoint2.x} ${this.dragPoint2.y}
+        L ${this.dragPoint2.x + this.setting.arrowSize} ${this.dragPoint2.y}
+        L ${this.dragPoint2.x} ${this.dragPoint2.y + this.setting.arrowSize}
+        L ${this.dragPoint2.x - this.setting.arrowSize} ${this.dragPoint2.y} Z`
+
+    }
 }

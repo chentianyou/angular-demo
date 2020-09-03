@@ -3,6 +3,7 @@ export interface FlowchartSetting {
     nodeNameHeight?: number;
     connectorHeight?: number;
     connectorSize?: number;
+    arrowSize?: number;
   }
   
   export interface FlowchartNode {
@@ -15,6 +16,7 @@ export interface FlowchartSetting {
     inputConnectors: FlowchartConnector[],
     outputConnectors: FlowchartConnector[],
     data: any,
+    icon?: string,
   }
   
   export interface FlowchartConnector {

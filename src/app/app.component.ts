@@ -12,12 +12,12 @@ export class AppComponent implements OnInit {
 
   nodes = [
     {
-      "name": "Example Node 1",
+      "name": "流计算",
       "id": 0,
       "x": -34,
       "y": 256,
-      "width": 350,
-      "height": 100,
+      "width": 240,
+      "height": 50,
       "inputConnectors": [
         {
           "name": "A"
@@ -39,22 +39,21 @@ export class AppComponent implements OnInit {
         {
           "name": "C"
         }
-      ]
+      ],
+      "icon": "icon-liujisuan"
     },
     {
-      "name": "Example Node 2",
+      "name": "离线计算",
       "id": 1,
       "x": 287,
       "y": 119,
+      "icon": "icon-cube",
       "inputConnectors": [
         {
           "name": "A"
         },
         {
           "name": "B"
-        },
-        {
-          "name": "C"
         }
       ],
       "outputConnectors": [
@@ -68,8 +67,8 @@ export class AppComponent implements OnInit {
           "name": "C"
         }
       ],
-      "width": 250,
-      "height": 100
+      "width": 240,
+      "height": 50,
     }
   ]
 

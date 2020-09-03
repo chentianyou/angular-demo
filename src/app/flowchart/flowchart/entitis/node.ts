@@ -93,6 +93,17 @@ export class NodeViewModel implements FCService {
     }
 
     //
+    // Icon of the node
+    //
+    get icon() {
+        return this.data.icon;
+    }
+
+    get hasIcon() {
+        return this.data.icon && true;
+    }
+
+    //
     // Select the node.
     //
     select() {

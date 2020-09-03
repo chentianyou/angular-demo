@@ -1,0 +1,37 @@
+{
+  "id": "2014988",
+  "name": "ali",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "348489",
+      "name": "folder",
+      "font_class": "folder",
+      "unicode": "eac9",
+      "unicode_decimal": 60105
+    },
+    {
+      "icon_id": "1898757",
+      "name": "folder-open",
+      "font_class": "folder-open",
+      "unicode": "e696",
+      "unicode_decimal": 59030
+    },
+    {
+      "icon_id": "14679507",
+      "name": "cube",
+      "font_class": "cube",
+      "unicode": "e6fc",
+      "unicode_decimal": 59132
+    },
+    {
+      "icon_id": "5961310",
+      "name": "流计算",
+      "font_class": "liujisuan",
+      "unicode": "ec56",
+      "unicode_decimal": 60502
+    }
+  ]
+}

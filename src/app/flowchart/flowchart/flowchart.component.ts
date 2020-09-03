@@ -24,6 +24,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     nodeNameHeight: 40,
     connectorHeight: 35,
     connectorSize: 5,
+    arrowSize: 7,
   };
 
   @Input()
@@ -156,7 +157,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   _createConnectionViewModel(connectionDataModel) {
     let sourceConnector = this.findOutputConnector(connectionDataModel.source.nodeID, connectionDataModel.source.connectorIndex);
     let destConnector = this.findInputConnector(connectionDataModel.dest.nodeID, connectionDataModel.dest.connectorIndex);
-    let connection = new ConnectionViewModel(connectionDataModel, sourceConnector, destConnector, this.service);
+    let connection = new ConnectionViewModel(connectionDataModel, sourceConnector, destConnector, this.service, this.setting);
     connection.selectedHandler = (data) => { this.onConnectionSelected.emit(data); };
     this.service.addObject(connection.id, connection);
     return connection;
@@ -236,10 +237,12 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     let outputConnector = startConnectorType == 'output' ? startConnector : endConnector;
     let inputConnector = startConnectorType == 'output' ? endConnector : startConnector;
 
-    let connectionViewModel = new ConnectionViewModel(connectionDataModel, outputConnector, inputConnector, this.service);
+    let connectionViewModel = new ConnectionViewModel(connectionDataModel, outputConnector, inputConnector, this.service, this.setting);
     connectionViewModel.selectedHandler = (data) => { this.onConnectionSelected.emit(data); };
     this.service.addObject(connectionViewModel.id, connectionViewModel);
     connectionsViewModel.push(connectionViewModel);
+    inputConnector.used = true;
+    outputConnector.used = true;
     this.onAddConnection.emit(connectionViewModel.data);
   };
 
@@ -438,6 +441,12 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     this.data.nodes = newNodeDataModels;
     this.connections = newConnectionViewModels;
     this.data.connections = newConnectionDataModels;
+
+    // Set connector to unused
+    for(let connection of deletedConnections) {
+      connection.source.used = false;
+      connection.dest.used = false;
+    }
   };
 
   //

@@ -1,5 +1,6 @@
 import { FlowchartService, FCService } from "../../flowchart.service";
 import { Toolkit } from "../../Toolkit";
+import { FlowchartSetting } from "./graph";
 
 export class ConnectionViewModel implements FCService {
     id: string;
@@ -9,8 +10,9 @@ export class ConnectionViewModel implements FCService {
     _selected = false;
     service: FlowchartService;
     selectedHandler: (data) => void;
+    setting: FlowchartSetting;
 
-    constructor(connectionDataModel, sourceConnector, destConnector, service: FlowchartService) {
+    constructor(connectionDataModel, sourceConnector, destConnector, service: FlowchartService, setting: FlowchartSetting) {
         this.data = connectionDataModel;
         this.source = sourceConnector;
         this.dest = destConnector;
@@ -18,6 +20,7 @@ export class ConnectionViewModel implements FCService {
         this._selected = false;
         this.id = Toolkit.UID();
         this.service = service;
+        this.setting = setting;
     }
 
     name() {
@@ -29,6 +32,13 @@ export class ConnectionViewModel implements FCService {
         C ${this.sourceTangentX()}, ${this.sourceTangentY()}
         ${this.destTangentX()}, ${this.destTangentY()}
         ${this.destCoordX()}, ${this.destCoordY()}`
+    }
+
+    get arrowPath() {
+        return `M ${this.destCoordX()} ${this.destCoordY()}
+        L ${this.destCoordX() + this.setting.arrowSize} ${this.destCoordY()}
+        L ${this.destCoordX()} ${this.destCoordY() + this.setting.arrowSize}
+        L ${this.destCoordX() - this.setting.arrowSize} ${this.destCoordY()} Z`
     }
 
     sourceCoordX() {
@@ -126,5 +136,8 @@ export class ConnectionViewModel implements FCService {
     selected() {
         return this._selected;
     };
+
+
+
 }
 

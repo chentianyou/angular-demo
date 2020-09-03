@@ -7,6 +7,7 @@ export class ConnectorViewModel implements FCService {
     _parentNode: any;
     _x: any;
     _y: any;
+    used = false;
     service: FlowchartService;
 
     constructor(connectorDataModel, x, y, parentNode, service) {
