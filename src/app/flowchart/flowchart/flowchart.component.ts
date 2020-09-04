@@ -24,7 +24,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     nodeNameHeight: 40,
     connectorHeight: 35,
     connectorSize: 5,
-    arrowSize: 7,
+    arrowSize: 5,
   };
 
   @Input()

@@ -1,5 +1,4 @@
 <div class="draggable-container" style="position: relative;">
-
   <svg style="width: 100%; height: 100%;" xmlns="http://www.w3.org/2000/svg" (mousedown)="controller.mouseDown($event)"
     (mousemove)="controller.mouseMove($event)" (mousewheel)="controller.mouseWheel($event)"
     (dragover)="dragOver($event)" (drop)="drop($event)" (contextmenu)="contextmenu($event)" #svg_ele>
@@ -8,17 +7,21 @@
         <stop offset="0" stop-opacity="0.99609" stop-color="#56aaff" />
         <stop offset="0.63934" stop-opacity="0.99219" stop-color="#d0d0e5" />
       </linearGradient>
+      <filter x="0" y="0" width="1" height="1" id="solid">
+        <feFlood flood-color="black" />
+        <feComposite in="SourceGraphic" operator="xor" />
+      </filter>
     </defs>
 
     <!-- node -->
     <g *ngFor="let node of nodes;let node_idx=index" (mousedown)="controller.nodeMouseDown($event, node)">
       <rect
         [ngClass]="{'selected-node-rect': node.selected(), 'mouseover-node-rect': node.id == controller.mouseOverNode}"
-        class="node-rect'" ry="10" rx="10" [attr.x]="node.x" [attr.y]="node.y" [attr.width]="node.width"
+        class="node-rect" ry="5" rx="5" [attr.x]="node.x" [attr.y]="node.y" [attr.width]="node.width"
         [attr.height]="node.height" fill="#ffffff" [attr.data-index]="node.id">
       </rect>
 
-      <!--icon-->
+      <!--node icon-->
       <g *ngIf="node.hasIcon">
         <rect [attr.x]="node.x+5" [attr.y]="node.y+5" width=40 height=40 fill="blue"></rect>
         <use [attr.xlink:href]="'#'+node.icon" width=40 height=40 [attr.x]="node.x+5" [attr.y]="node.y+5" fill="white">
@@ -34,6 +37,13 @@
           [ngClass]="{'mouseover-connector-circle': connector.id == controller.mouseOverConnector}"
           class="connector-circle" [attr.r]="setting.connectorSize" [attr.cx]="node.x + connector.x"
           [attr.cy]="node.y + connector.y" [attr.data-index]="connector.id" />
+        <text *ngIf="connector.id == controller.mouseOverConnector && connector.err_msg==''" [attr.x]="node.x + connector.x"
+          [attr.y]="node.y + connector.y - 15" text-anchor="middle" alignment-baseline="middle"
+          font-size="small">{{connector.name()}}</text>
+        <g *ngIf="connector.err_msg" class="tooltip-connector">
+          <text filter="url(#solid)" [attr.x]="node.x + connector.x" [attr.y]="node.y + connector.y - 15" text-anchor="middle"
+            alignment-baseline="middle" font-size="small">{{connector.err_msg}}</text>
+        </g>
       </g>
       <g *ngFor="let connector of node.outputConnectors;let output_idx=index" class="connector output-connector"
         (mousedown)="controller.connectorMouseDown($event, node, connector, output_idx, false)">
@@ -41,6 +51,9 @@
           [ngClass]="{'mouseover-connector-circle': connector.id == controller.mouseOverConnector }"
           class="connector-circle" [attr.r]="setting.connectorSize" [attr.cx]="node.x + connector.x"
           [attr.cy]="node.y + connector.y" [attr.data-index]="connector.id" />
+        <text *ngIf="connector.id == controller.mouseOverConnector" [attr.x]="node.x + connector.x"
+          [attr.y]="node.y + connector.y + 15" text-anchor="middle" alignment-baseline="middle"
+          font-size="smaller">{{connector.name()}}</text>
       </g>
     </g>
 
@@ -55,7 +68,7 @@
 
         <circle
           [ngClass]="{'selected-connection-endpoint': connection.selected(), 'mouseover-connection-endpoint': connection.id == controller.mouseOverConnection}"
-          class="connection-endpoint" r="5" [attr.cx]="connection.sourceCoordX()" [attr.cy]="connection.sourceCoordY()"
+          class="connection-endpoint" r="3" [attr.cx]="connection.sourceCoordX()" [attr.cy]="connection.sourceCoordY()"
           [attr.data-index]="connection.id">
         </circle>
 
@@ -70,7 +83,7 @@
       <path class="dragging-connection dragging-connection-line" [attr.d]="controller.draggingPath">
       </path>
 
-      <circle class="dragging-connection dragging-connection-endpoint" r="4" [attr.cx]="controller.dragPoint1.x"
+      <circle class="dragging-connection dragging-connection-endpoint" r="3" [attr.cx]="controller.dragPoint1.x"
         [attr.cy]="controller.dragPoint1.y">
       </circle>
 
@@ -82,6 +95,7 @@
       [attr.height]="controller.dragSelectionRect?.height">
     </rect>
   </svg>
+  <!-- grid background -->
   <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
     style="position: absolute; left:0; top:0; z-index:-10000" (mousemove)="controller.mouseMove($event)">
     <defs>

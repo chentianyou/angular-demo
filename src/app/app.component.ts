@@ -12,60 +12,42 @@ export class AppComponent implements OnInit {
 
   nodes = [
     {
-      "name": "流计算",
+      "name": "数据源",
       "id": 0,
       "x": -34,
       "y": 256,
       "width": 240,
       "height": 50,
-      "inputConnectors": [
-        {
-          "name": "A"
-        },
-        {
-          "name": "B"
-        },
-        {
-          "name": "C"
-        }
-      ],
+      "inputConnectors": [],
       "outputConnectors": [
         {
-          "name": "A"
+          "name": "数据输出",
+          "type": "A"
         },
-        {
-          "name": "B"
-        },
-        {
-          "name": "C"
-        }
       ],
       "icon": "icon-liujisuan"
     },
     {
-      "name": "离线计算",
+      "name": "决策树模型",
       "id": 1,
       "x": 287,
       "y": 119,
       "icon": "icon-cube",
       "inputConnectors": [
         {
-          "name": "A"
+          "name": "训练数据输入",
+          "type": "A"
         },
         {
-          "name": "B"
+          "name": "预测数据输入",
+          "type": "A"
         }
       ],
       "outputConnectors": [
         {
-          "name": "A"
+          "name": "模型输出",
+          "type": "B"
         },
-        {
-          "name": "B"
-        },
-        {
-          "name": "C"
-        }
       ],
       "width": 240,
       "height": 50,

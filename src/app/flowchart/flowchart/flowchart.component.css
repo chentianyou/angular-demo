@@ -26,12 +26,12 @@ Styles for nodes and connectors.
 
 .mouseover-node-rect {
     stroke: black;
-    stroke-width: 4;
+    stroke-width: 2;
 }
 
 .selected-node-rect {
     stroke: red;
-    stroke-width: 3;
+    stroke-width: 2;
 }
 
 .connector-circle {
@@ -43,7 +43,7 @@ Styles for nodes and connectors.
 .mouseover-connector-circle {
     fill: white;
     stroke: black;
-    stroke-width: 3;
+    stroke-width: 2;
 }
 
 /*
@@ -54,19 +54,19 @@ Style for connections.
 
 .connection-line {
     stroke: gray;
-    stroke-width: 4;
+    stroke-width: 2;
     fill: transparent;
 }
 
 .mouseover-connection-line {
     stroke: gray;
-    stroke-width: 6;
+    stroke-width: 3;
     fill: transparent;
 }
 
 .selected-connection-line {
     stroke: red;
-    stroke-width: 4;
+    stroke-width: 2;
     fill: transparent;
 }
 
@@ -104,7 +104,7 @@ Style for the connection being dragged out.
 
 .dragging-connection-line {
     stroke: gray;
-    stroke-width: 3;
+    stroke-width: 2;
     fill: transparent;
 }
 

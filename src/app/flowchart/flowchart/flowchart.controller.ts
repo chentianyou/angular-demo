@@ -360,9 +360,13 @@ export class FlowchartController {
                     // The mouse is over a valid connector...
                     // Create a new connection.
                     //
-                    let endConnector = this.service.getObject(this.mouseOverConnector);
-
-                    this.model.createNewConnection(connector, endConnector);
+                    let endConnector = this.service.getObject(this.mouseOverConnector) as ConnectorViewModel;
+                    if (endConnector.type == connector.type) {
+                        this.model.createNewConnection(connector, endConnector);
+                    } else {
+                        endConnector.err_msg = `[${connector.name()}]和[${endConnector.name()}]类型不匹配`;
+                        setTimeout(() => { endConnector.err_msg = "" }, 3000);
+                    }
                 }
 
                 this.draggingConnection = false;

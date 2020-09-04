@@ -8,6 +8,7 @@ export class ConnectorViewModel implements FCService {
     _x: any;
     _y: any;
     used = false;
+    err_msg: string = "";
     service: FlowchartService;
 
     constructor(connectorDataModel, x, y, parentNode, service) {
@@ -24,6 +25,11 @@ export class ConnectorViewModel implements FCService {
     //
     name() {
         return this.data.name;
+    }
+
+    // The type of the connector
+    get type() {
+        return this.data.type || ""
     }
 
     //
