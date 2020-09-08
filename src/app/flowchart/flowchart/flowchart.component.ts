@@ -5,6 +5,7 @@ import { FlowchartService, FCService } from '../flowchart.service';
 import { NodeViewModel } from './entitis/node';
 import { ConnectionViewModel } from './entitis/connection';
 import { FlowchartNode, FlowchartSetting } from './entitis/graph';
+import * as d3 from 'd3';
 declare var $: any;
 
 @Component({
@@ -25,6 +26,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     connectorHeight: 35,
     connectorSize: 5,
     arrowSize: 5,
+    minimapScale: 0.4,
   };
 
   @Input()
@@ -51,10 +53,11 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   @Output()
   onConnectionSelected: EventEmitter<any> = new EventEmitter();
 
-
   @ViewChild('svg_ele') svg;
+  @ViewChild('minimap') minimap;
 
   element = null;
+  minimapEle = null;
 
   constructor(
     ele: ElementRef,
@@ -62,6 +65,10 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   ) {
     this.service = service;
     this.controller = new FlowchartController(this, ele.nativeElement, this.service, this.setting);
+    this.data = {
+      nodes: [],
+      connections: [],
+    }
   }
 
   ngOnInit() {
@@ -74,6 +81,8 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
   ngAfterViewInit() {
     this.element = $(this.svg.nativeElement)
     this.controller.registerElement(this.element);
+    this.minimapEle = $(this.minimap.nativeElement);
+    this.controller.registerMiniMapEle(this.minimapEle);
   }
 
   // event functions
@@ -81,20 +90,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     evt.preventDefault();
   }
 
-  drop(evt: DragEvent) {
-    evt.preventDefault();
-    let dataStr = evt.dataTransfer.getData("node");
-    let offset = JSON.parse(evt.dataTransfer.getData("offset"));
-    if (dataStr) {
-      let data = JSON.parse(dataStr);
-      data.id = Toolkit.UID();
-      let point = Toolkit.translateCoordinates(this.element, evt.pageX - offset.x, evt.pageY - offset.y, evt)
-      data.x = point.x;
-      data.y = point.y;
-      this.addNode(data);
-      this.onDrop.emit({ data: data, originEvent: evt });
-    }
-  }
+
 
   // Disable contexmenu
   contextmenu(evt) {
@@ -443,7 +439,7 @@ export class FlowchartComponent implements OnInit, AfterViewInit, FCService {
     this.data.connections = newConnectionDataModels;
 
     // Set connector to unused
-    for(let connection of deletedConnections) {
+    for (let connection of deletedConnections) {
       connection.source.used = false;
       connection.dest.used = false;
     }

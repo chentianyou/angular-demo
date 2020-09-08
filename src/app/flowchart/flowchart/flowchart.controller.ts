@@ -6,7 +6,7 @@ import { FlowchartService } from "../flowchart.service";
 import { ConnectorViewModel } from "./entitis/connector";
 import { NodeViewModel } from "./entitis/node";
 import { FlowchartSetting } from "./entitis/graph";
-import { sp, e } from "@angular/core/src/render3";
+import * as d3 from 'd3';
 declare let $: any;
 
 export class FlowchartController {
@@ -16,6 +16,10 @@ export class FlowchartController {
     setting: FlowchartSetting;
     service: FlowchartService;
     element: any;
+    d3ele: any;
+    gCam: any;
+
+    minimapEle: any;
     dragSelectionStartPoint: any;
     dragSelectionRect: { x: number, y: number, width: number, height: number };
     mouseOverConnection = null;
@@ -28,7 +32,7 @@ export class FlowchartController {
 
     draggingConnection = false;
     dragSelecting = false;
-    Panning = false;
+    // Panning = false;
     document;
 
     dragPoint1 = null;
@@ -37,10 +41,14 @@ export class FlowchartController {
     dragTangent2 = null;
 
     timeStamp = 0;
-    viewBox = { x: 0, y: 0, w: 100, h: 100 };
-    size = { w: 100, h: 100 };
+    minimapViewBox = { x: 0, y: 0, w: 100, h: 100 };
+    size = { w: 300, h: 300 };
+    canvasSize = { w: 100, h: 100 };
     isPanning = false;
-    scale = 1;
+    brush: d3.BrushBehavior<any> = null;
+    gBrush = null;
+    zoom = null;
+    transform = { x: 0, y: 0, k: 1 };
 
     constructor(model: FlowchartComponent, element, service, setting) {
         this.mouseCapture = new MouseCapture();
@@ -55,10 +63,77 @@ export class FlowchartController {
 
     registerElement(element) {
         this.element = $(element);
-        this.viewBox.w = this.element.width();
-        this.viewBox.h = this.element.height();
-        this.size = { w: this.element.width(), h: this.element.height() };
+        // this.viewBox = { x: 0, y: 0, w: this.element.width(), h: this.element.height() };
+        this.size = { w: this.element.width(), h: this.element.height() }; // This is view size
+        this.canvasSize = { w: this.size.w / this.setting.minimapScale, h: this.size.h / this.setting.minimapScale };
         this.mouseCapture.registerElement(element);
+        this.d3ele = d3.select(this.element.get(0));
+        this.gCam = this.d3ele.select("g");
+        this.zoom = d3.zoom()
+            .scaleExtent([0.2, 2])
+            .on("zoom", (evt: any) => {
+                this.transform = evt.transform;
+                if (evt.sourceEvent && evt.sourceEvent.type === "brush")
+                    return null;
+                this.gCam.attr("transform", this.trans(this.transform.x, this.transform.y, this.transform.k));
+                const scaleX = this.minimapScaleX(this.transform.k);
+                const scaleY = this.minimapScaleY(this.transform.k);
+                this.brush.move(this.gBrush, [
+                    [scaleX.invert(-this.transform.x), scaleY.invert(-this.transform.y)],
+                    [scaleX.invert(-this.transform.x + this.size.w), scaleY.invert(-this.transform.y + this.size.h)]
+                ]);
+            });
+    }
+
+    registerMiniMapEle(element) {
+        this.minimapEle = element;
+        let svg = d3.select(this.minimapEle.get(0));
+        let w = this.size.w;
+        let h = this.size.h;
+        svg.attr("viewBox", [0, 0, this.canvasSize.w, this.canvasSize.h].join(" "))
+            .attr("preserveAspectRatio", "xMidYMid meet");
+        this.gBrush = svg.append("g");
+        this.brush = d3.brush()
+            .extent([[0, 0], [this.canvasSize.w, this.canvasSize.h]])
+            .on("brush", (evt: any) => {
+                console.log(evt);
+
+                if (!evt.sourceEvent)
+                    return null;
+                if (Array.isArray(evt.selection)) {
+                    const [[brushX, brushY], [brushX2, brushY2]] = evt.selection;
+                    const zoomScale = d3.zoomTransform(this.d3ele.node()).k;
+
+                    const scaleX = this.minimapScaleX(zoomScale);
+                    const scaleY = this.minimapScaleY(zoomScale);
+                    this.d3ele.call(
+                        this.zoom.transform,
+                        d3.zoomIdentity.translate(-brushX, -brushY).scale(zoomScale),
+                        null,
+                        evt
+                    );
+                    this.gCam.attr("transform", this.trans(scaleX(-brushX), scaleY(-brushY), zoomScale));
+                }
+
+            });
+        this.d3ele.call(this.zoom);
+        this.gBrush.call(this.brush);
+        this.brush.move(this.gBrush, [[0, 0], [w, h]]);
+        svg.selectAll(".handle").remove();
+        svg.selectAll(".overlay").remove();
+    }
+
+    minimapScaleX(zoomScale) {
+        return d3.scaleLinear().domain([0, this.size.w]).range([0, this.size.w * zoomScale]);
+    }
+    minimapScaleY(zoomScale) {
+        return d3.scaleLinear().domain([0, this.size.h]).range([0, this.size.h * zoomScale]);
+    }
+
+    trans(x, y, k) {
+        const coord2d = `translate(${x}, ${y})`;
+        if (!k) return coord2d;
+        return coord2d + ` scale(${k})`;
     }
 
     hitTest(clientX, clientY) {
@@ -129,6 +204,16 @@ export class FlowchartController {
         return $(element);
     }
 
+    scaleX(x) {
+        return (x - this.transform.x) / this.transform.k;
+    }
+    scaleY(y) {
+        return (y - this.transform.y) / this.transform.k;
+    }
+    scalePoint(point) {
+        return { x: this.scaleX(point.x), y: this.scaleY(point.y) };
+    }
+
     mouseDown(evt) {
         let startMouseCoords;
         this.model.deselectAll();
@@ -139,8 +224,8 @@ export class FlowchartController {
             //
             dragStarted: (x, y, e) => {
                 this.dragSelecting = evt.ctrlKey;
-                this.Panning = !evt.ctrlKey;
-                let startPoint = Toolkit.translateCoordinates(this.element, x, y, evt);
+                // this.Panning = !evt.ctrlKey;
+                let startPoint = this.scalePoint(Toolkit.translateCoordinates(this.element, x, y, evt));
                 this.dragSelectionStartPoint = startPoint;
                 startMouseCoords = { x: x, y: y };
                 this.dragSelectionRect = {
@@ -155,8 +240,7 @@ export class FlowchartController {
             // Update the drag selection rect while dragging continues.
             //
             dragging: (x, y, e) => {
-                let curPoint = Toolkit.translateCoordinates(this.element, x, y, evt);
-
+                let curPoint = this.scalePoint(Toolkit.translateCoordinates(this.element, x, y, evt));
                 if (this.dragSelecting) {
                     let startPoint = this.dragSelectionStartPoint;
                     this.dragSelectionRect = {
@@ -166,15 +250,6 @@ export class FlowchartController {
                         height: curPoint.y > startPoint.y ? curPoint.y - startPoint.y : startPoint.y - curPoint.y,
                     };
                 }
-
-                if (this.Panning) {
-                    let dx = (startMouseCoords.x - x) / this.scale;
-                    let dy = (startMouseCoords.y - y) / this.scale;
-                    this.viewBox = { x: this.viewBox.x + dx, y: this.viewBox.y + dy, w: this.viewBox.w, h: this.viewBox.h };
-                    let vb = `${this.viewBox.x} ${this.viewBox.y} ${this.viewBox.w} ${this.viewBox.h}`;
-                    this.element.attr('viewBox', vb);
-                    startMouseCoords = { x: x, y: y };
-                }
             },
 
             //
@@ -182,7 +257,7 @@ export class FlowchartController {
             //
             dragEnded: () => {
                 this.dragSelecting = false;
-                this.Panning = false;
+                // this.Panning = false;
                 this.model.applySelectionRect(this.dragSelectionRect);
                 delete this.dragSelectionStartPoint;
                 delete this.dragSelectionRect;
@@ -230,29 +305,18 @@ export class FlowchartController {
         this.mouseOverNode = index;
     }
 
-    mouseWheel(evt: WheelEvent) {
+    drop(evt: DragEvent) {
         evt.preventDefault();
-        let w = this.viewBox.w;
-        let h = this.viewBox.h;
-        let mx = evt.offsetX;//mouse x  
-        let my = evt.offsetY;
-        let dw = w * Math.sign(evt.deltaY) * 0.05;
-        let dh = h * Math.sign(evt.deltaY) * 0.05;
-        let dx = dw * mx / this.size.w;
-        let dy = dh * my / this.size.h;
-        let nx = this.viewBox.x + dx,
-            ny = this.viewBox.y + dy,
-            nw = this.viewBox.w - dw,
-            nh = this.viewBox.h - dh;
-        this.scale = this.size.w / nw;
-        if (this.scale >= 0.5 && this.scale <= 2) {
-            this.viewBox = { x: nx, y: ny, w: nw, h: nh };
-            let vb = `${this.viewBox.x} ${this.viewBox.y} ${this.viewBox.w} ${this.viewBox.h}`;
-            this.element.attr('viewBox', vb);
-        } else if (this.scale > 2) {
-            this.scale = 2;
-        } else if (this.scale < 0.5) {
-            this.scale = 0.5;
+        let dataStr = evt.dataTransfer.getData("node");
+        let offset = JSON.parse(evt.dataTransfer.getData("offset"));
+        if (dataStr) {
+            let data = JSON.parse(dataStr);
+            data.id = Toolkit.UID();
+            let point = Toolkit.translateCoordinates(this.element, evt.pageX - offset.x, evt.pageY - offset.y, evt)
+            data.x = this.scaleX(point.x);
+            data.y = this.scaleY(point.y);
+            this.model.addNode(data);
+            this.model.onDrop.emit({ data: data, originEvent: evt });
         }
     }
 
@@ -264,7 +328,7 @@ export class FlowchartController {
             // Node dragging has commenced.
             //
             dragStarted: (x, y) => {
-                lastMouseCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
+                lastMouseCoords = this.scalePoint(Toolkit.translateCoordinates(this.element, x, y, evt));
 
                 //
                 // If nothing is selected when dragging starts, 
@@ -280,7 +344,7 @@ export class FlowchartController {
             // Dragging selected nodes... update their x,y coordinates.
             //
             dragging: (x, y) => {
-                let curCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
+                let curCoords = this.scalePoint(Toolkit.translateCoordinates(this.element, x, y, evt));
                 let deltaX = curCoords.x - lastMouseCoords.x;
                 let deltaY = curCoords.y - lastMouseCoords.y;
 
@@ -338,7 +402,7 @@ export class FlowchartController {
             // Called on mousemove while dragging out a connection.
             //
             dragging: (x, y, evt) => {
-                let startCoords = Toolkit.translateCoordinates(this.element, x, y, evt);
+                let startCoords = this.scalePoint(Toolkit.translateCoordinates(this.element, x, y, evt));
                 this.dragPoint2 = {
                     x: startCoords.x,
                     y: startCoords.y

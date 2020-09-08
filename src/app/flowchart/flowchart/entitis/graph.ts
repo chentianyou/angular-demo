@@ -4,6 +4,7 @@ export interface FlowchartSetting {
     connectorHeight?: number;
     connectorSize?: number;
     arrowSize?: number;
+    minimapScale?: number;
   }
   
   export interface FlowchartNode {
